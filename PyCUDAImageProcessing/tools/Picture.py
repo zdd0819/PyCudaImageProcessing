@@ -3,6 +3,7 @@ import cv2  # opencv3 import
 import numpy as np  # array operations
 import sys  # system
 import os  # os
+import string
 
 """
     Implementation of abstract class image
@@ -14,14 +15,15 @@ class Picture(_Picture):
     image  = None
     width  = None
     height = None
-    RED    = 0.299
-    GREEN  = 0.587
-    BLUE   = 0.114
+    RED    = 0.299 # red weight average
+    GREEN  = 0.587 # green '' ''''
+    BLUE   = 0.114 # blue """"""
 
     def __init__(self, filename=None, width=None, height=None, channel=1):
         try:
             # load image : if error occurs None is returned
             if filename is not None: # no filename provided
+                self.filename = filename
                 if channel == 3:  # color image
                     self.image = self.load(filename, channel)
                 else:  # grayscale
@@ -30,9 +32,9 @@ class Picture(_Picture):
                 # create new image
                 if width > 0 and height > 0:
                     if channel == 3: # three channels RGB
-                        self.image = np.zeros((width, height, 3), dtype=np.uint8)
+                        self.image = np.zeros((width, height, 3))
                     else: # grayscale image
-                        self.image = np.zeros((width, height), dtype=np.uint8)
+                        self.image = np.zeros((width, height))
                 else: # error occured
                     print("Invalid height and width NOT provided!")
                     raise
@@ -111,7 +113,7 @@ class Picture(_Picture):
         """
         if channel == 1:  # grayscale
             if self.image is not None:
-                self.image[x][y] = np.uint8(i)
+                self.image[x][y] = i
             else:
                 print("Error: setting values {0} at {1},{2}".format(x, y, i))
                 return
@@ -140,8 +142,10 @@ class Picture(_Picture):
         try:
             if i is None and self.image is not None:  # no image object: display class object
                 if c is None:  # display : no window name
-                    cv2.imshow("image", self.image)
+                    cv2.imshow("image", self.image, )
                 else:
+                    assert isinstance(self.filename, string)
+                    c = self.filename
                     cv2.imshow(c, self.image)
             elif i is None and self.image is None:
                 print("No image object loaded : please provide an image")
@@ -166,10 +170,10 @@ class Picture(_Picture):
         :return: image array
         """
         try:
-            if c is None:
+            if c is None: # gray
                 return self.validate(cv2.imread(filename, 0))
-            else:
-                return self.validate(cv2.imread(filename, cv2.CV_LOAD_IMAGE_COLOR))
+            else: # color
+                return self.validate(cv2.imread(filename, 1))
         except IOError as strerror:
             print("IOError: {}".format(strerror))
         except:
@@ -215,4 +219,9 @@ class Picture(_Picture):
         else:
             print("Error: Object is not member of numpy.ndarray , is empty")
             return
+
+    def rgb(self, r, g, b):
+        return r * self.RED + g * self.GREEN + b * self.BLUE
+
+
 

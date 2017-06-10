@@ -39,6 +39,8 @@ import cv2
 
 from tools.Picture import Picture
 
-u = Picture()
-i = Picture("1.jpg")
-u.show(i=i.get_image_array())
+from scipy import misc
+import math
+for i in range(3):
+		for j in range(3):
+			print(i, j)

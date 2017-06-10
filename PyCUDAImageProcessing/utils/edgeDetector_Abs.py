@@ -47,9 +47,9 @@ class _EdgeDetector(object):
         """
 
     @abstractmethod
-    def calculateEdges(self, image):
+    def sobel_edges(self, image,channel=1):
         """
-        calculate the edges in a given image
+        implement the sobel edge detection algorithm
         :param image: 
-        :return: new image with edge detection 
+        :return: new image with edges
         """

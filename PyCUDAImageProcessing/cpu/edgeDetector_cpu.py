@@ -1,5 +1,5 @@
 """
-    edge Detection CPU implementation
+    edge Detection CPU implementation : SOBEL ALGORITHM
     @philipchicco 
 """
 # imports
@@ -10,8 +10,8 @@ import math
 
 
 class edgeDetector_cpu(_EdgeDetector):
-    filter_1 = None
-    filter_2 = None
+    filter_1 = None  # sobel_x
+    filter_2 = None  # sobel_y
 
     def __init__(self, filter_1=None, filter_2=None):
         """
@@ -22,14 +22,14 @@ class edgeDetector_cpu(_EdgeDetector):
                 [-1, 0, 1],
                 [-2, 0, 2],
                 [-1, 0, 1]
-            ], dtype=np.int)
+            ])
 
         if filter_2 is None:
             self.filter_2 = np.array([
-                [1, 0, 1],
+                [-1, -2, -1],
                 [0, 0, 0],
-                [-1, -2, -1]
-            ], dtype=np.int)
+                [1, 2, 1]
+            ])
 
         if filter_1 is not None and filter_2 is not None:
             try:
@@ -49,7 +49,7 @@ class edgeDetector_cpu(_EdgeDetector):
         elif value > 255:
             return 255
         else:
-            return np.uint8(value) #grayscale value
+            return value  # grayscale value
 
     def set_filter_1(self, array):
         """
@@ -89,13 +89,15 @@ class edgeDetector_cpu(_EdgeDetector):
         """
         return self.filter_2
 
-    def calculateEdges(self, image, channel=1):
+    def sobel_edges(self, image, channel=1):
         """
-        calculate the edges in a given image
+        SOBEL ALGORITHM IMPLEMENTATION
+        :param image: 
         :param channel: 
-        :param image: instance of Picture
-        :return: new image with edge detection 
+        :return: 
         """
+        sum_x = 0
+        sum_y = 0
         if isinstance(image, Picture):
             width = image.width()
             height = image.height()
@@ -104,36 +106,29 @@ class edgeDetector_cpu(_EdgeDetector):
             for y in range(height):
                 for x in range(width):
 
-                    # get neighbourhood of colors 3 * 3
-                    gray = np.zeros((3, 3), dtype=np.int)
-                    for i in range(3):
-                        for j in range(3):
-                            x_value = x - 1 + i
-                            y_value = y - 1 + j
-                            # avoid Index error
-                            #print(x_value, y_value)
-                            if x_value < width and y_value < height:
-                                if channel == 1:
-                                    gray[i][j] = np.int(image.get(x=x_value, y=y_value, channel=1))
-                                else:
-                                    gray[i][j] = np.int(image.intensity(x=x_value, y=y_value))
+                    # convolution
+                    mag = self.truncate(self.convolution(image.get_image_array(), x, y))
+                    edged_image.set(x=x, y=y, i=mag, channel=channel)
 
-                    # apply filters
-                    gray_1 = 0
-                    gray_2 = 0
-                    for i in range(3):
-                        for j in range(3):
-                            gray_1 += gray[i][j] * self.filter_1[i][j]
-                            gray_2 += gray[i][j] * self.filter_2[i][j]
-
-                    # calculate magnitude and truncate, set format here or in picture func set
-                    magnitude = 255 - self.truncate(np.int(math.sqrt(gray_1 * gray_1 + gray_2 * gray_2)))
-                    # set grayscale value
-                    edged_image.set(x=x, y=y, i=magnitude, channel=channel)
-            print("done")
-        else:
-            print("Error : Image object is not an instance of Picture ")
-            return
-        # computation done
         return edged_image
+        # end if block
 
+    def convolution(self, image, x, y):
+        """
+        :param image: image array 
+        :param x: x-co-rdinate
+        :param y: y-co-ordinate
+        :return: new_pixel value
+        """
+        ret_x = 0
+        ret_y = 0
+        lx, ly = image.shape
+
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                x_index = (x + i if x + i < lx else (x + i) % lx)
+                y_index = (y + j if y + j < ly else (y + j) % ly)
+                ret_x += image[x_index, y_index] * self.filter_1[i + 1, j + 1]
+                ret_y += image[x_index, y_index] * self.filter_2[i + 1, j + 1]
+
+        return math.sqrt(ret_x ** 2 + ret_y ** 2)
