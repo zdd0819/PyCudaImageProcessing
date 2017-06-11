@@ -41,6 +41,11 @@ from tools.Picture import Picture
 
 from scipy import misc
 import math
-for i in range(3):
-		for j in range(3):
-			print(i, j)
+
+x = np.array([
+                [1, 2, 3],[4, 5, 6],[7, 8, 9]
+            ]).flatten()
+print(x)
+for i in range(-1,2):
+	for j in range(-1,2):
+		print(x[((i+1) * 3) + (j+1)])
