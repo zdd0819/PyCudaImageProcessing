@@ -18,46 +18,70 @@ import time
 
 
 # arguments
-IMAGE_TEST = "images\\1.jpg"
+IMAGE_TEST = "images\\7.jpg"
+SAVE = True
+MODE = "CPU"
+DISPLAY = True
 
-def main():
+def main(MODE="CPU"):
 
-    # detector handle : loaded with default filters
-    detector = edgeDetector_cpu()
-    det_GPU = edgeDetector_gpu()
-    print("LOG: using CPU detection --- ")
-    picture_1 = Picture(IMAGE_TEST, channel=1)
-    #print(isinstance("dsdsds", str))
-    new_image = det_GPU.sobel_edges(picture_1.get_image_array())
+    try:
+        det_GPU = None
+        det_CPU = None
 
-    """
-    print("LOG: image loaded --- ")
-    print("LOG: image dimensions - ", picture_1.width(), " x ", picture_1.height())
+        # detector handle : loaded with default filters
+        if MODE == "CPU":
+            det_CPU = edgeDetector_cpu()
+        else:
+            det_GPU = edgeDetector_gpu()
 
-    # measure time
-    start_time = time.time()
-    new_image = detector.sobel_edges(picture_1, channel=1)
-    elapsed_time = time.time() - start_time
-    print("LOG : Elapsed_time_CPU : " + str(elapsed_time))
+        # load image
+        pic = Picture(IMAGE_TEST, channel=1)
+        if pic is not None:
+            print("LOG: Loaded image sucessfully")
+            print("LOG: image dimensions - ", pic.width(), " x ", pic.height())
+            if det_CPU is not None:
+                #
+                MODE = "CPU"
+                print("LOG: using CPU detection --- ")
+                # measure time
+                start_time = time.time()
+                new_image = det_CPU.sobel_edges(pic, channel=1)
+                elapsed_time = time.time() - start_time
+                print("LOG : Elapsed_time_CPU : " + str(elapsed_time))
+                if SAVE:
+                    # save the image
+                    misc.imsave(name="results\\_edged_CPU_" + IMAGE_TEST.split('\\')[-1],
+                                arr=new_image)
+            elif det_GPU is not None:
+                MODE = "GPU"
+                print("LOG: using GPU detection --- ")
+                new_image, time_gpu = det_GPU.sobel_edges(image=pic.get_image_array(), channel=1)
+                print("LOG : Elapsed_time_GPU : " + str(time_gpu))
+                if SAVE:
+                    # save the image
+                    misc.imsave(name="results\\_edged_GPU_" + IMAGE_TEST.split('\\')[-1],
+                                arr=new_image)
+        # display
+        if DISPLAY:
+            print("LOG : Displaying results: ---------- ")
+            fig = plt.figure()
+            ax1 = fig.add_subplot(121)
+            fig.suptitle("Edge Detection")
+            ax1.imshow(pic.get_image_array().astype(np.float32), cmap=plt.cm.gray, vmin=30, vmax=200)
+            ax2 = fig.add_subplot(122)
+            ax2.imshow(new_image, cmap=plt.cm.gray, vmin=30, vmax=200)
+            if MODE == "CPU" and SAVE:
+                fig.savefig("results\\fig_edged_CPU_" + (IMAGE_TEST.split('\\')[-1]).split(".")[0] + ".png")
+            elif MODE == "GPU" and SAVE:
+                fig.savefig("results\\fig_edged_GPU_" + (IMAGE_TEST.split('\\')[-1]).split(".")[0] + ".png")
+            plt.show()
 
-    # save the image
-    #misc.imsave(name="results\\_edged_" + IMAGE_TEST.split('\\')[-1], arr=new_image.get_image_array())
-    """
-    #misc.imsave(name="results\\_edged_GPU" + IMAGE_TEST.split('\\')[-1], arr=new_image)
-
-    # display
-    print("LOG : Displaying results: ---------- ")
-    fig = plt.figure()
-    ax1 = fig.add_subplot(121)
-    ax1.imshow(picture_1.get_image_array().astype(np.float32), cmap=plt.cm.gray, vmin=30, vmax=200)
-    ax2 = fig.add_subplot(122)
-    ax2.imshow(new_image, cmap=plt.cm.gray, vmin=30, vmax=200)
-    plt.show()
-
-
-
-    print("LOG: terminated successfully")
+        print("LOG: ----------------  terminated successfully ---------------------- ")
+    except Exception as e:
+        print("Exception occured ", e)
+        return
 
 # runner
 if __name__ == "__main__":
-    main()
+    main("GPU")

@@ -171,9 +171,11 @@ class Picture(_Picture):
         """
         try:
             if c is None: # gray
-                return self.validate(cv2.imread(filename, 0))
+                img = self.validate(cv2.imread(filename, 0))
+                return self.resize_image(img)
             else: # color
-                return self.validate(cv2.imread(filename, 1))
+                img = self.validate(cv2.imread(filename, 1))
+                return self.resize_image(img)
         except IOError as strerror:
             print("IOError: {}".format(strerror))
         except:
@@ -223,5 +225,33 @@ class Picture(_Picture):
     def rgb(self, r, g, b):
         return r * self.RED + g * self.GREEN + b * self.BLUE
 
+    def resize_image(self, i):
+        """
+        resize image to standard size
+        :param i: image object
+        :return: rezised image
+        """
+        if i is None:
+            print("Image is None TYPE. ERROR")
+            return
+        else:
+            w, h = i.shape
+            if not (h % 32) == 0:
+                h_new = int(h / 32)
+                if h_new > 16:  # greater than 1024
+                    h = 16 * 32
+                else:
+                    h = h_new * 32
+            elif int(h / 32) > 16:
+                h = 16 * 32
 
+            if not (w % 32) == 0:
+                w_new = int(w / 32)
+                if w_new > 16:  # greater than 1024
+                    w = 16 * 32
+                else:
+                    w = w_new * 32
+            elif int(w / 32) > 16:
+                w = 16 * 32
 
+        return cv2.resize(i, (w, h), interpolation=cv2.INTER_AREA)

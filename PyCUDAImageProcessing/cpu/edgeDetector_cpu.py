@@ -32,7 +32,7 @@ class edgeDetector_cpu(EdgeDetector):
                     mag = self.truncate(self.convolution(image.get_image_array(), x, y))
                     edged_image.set(x=x, y=y, i=mag, channel=channel)
 
-        return edged_image
+        return edged_image.get_image_array()
         # end if block
 
     def convolution(self, image, x, y):

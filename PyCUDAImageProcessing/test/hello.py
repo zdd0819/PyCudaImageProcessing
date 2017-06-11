@@ -4,7 +4,6 @@ import numpy as np
 from pycuda.compiler import SourceModule
 import cv2
 
-
 # mod = SourceModule("""
 # __global__ void multiply_them(float *dest, float *a, float *b)
 # {
@@ -26,26 +25,26 @@ import cv2
 # print(dest-a*b)
 
 # read image into matrix.
-#m = cv2.imread("1.jpg")
+# m = cv2.imread("1.jpg")
 
 # get image properties.
-#w, h, bpp = np.shape(m)
+# w, h, bpp = np.shape(m)
 
 # print image properties.
-#print("width: " + str(w))
-#print("height: " + str(h))
-#print("bpp: " + str(bpp))
-#print(np.shape(m)[0])
+# print("width: " + str(w))
+# print("height: " + str(h))
+# print("bpp: " + str(bpp))
+# print(np.shape(m)[0])
 
 from tools.Picture import Picture
 
 from scipy import misc
 import math
-
-x = np.array([
-                [1, 2, 3],[4, 5, 6],[7, 8, 9]
-            ]).flatten()
-print(x)
-for i in range(-1,2):
-	for j in range(-1,2):
-		print(x[((i+1) * 3) + (j+1)])
+# arguments
+IMAGE_TEST = "..\\images\\3.jpg"
+picture_1 = Picture(IMAGE_TEST, channel=1)
+if picture_1 is None:
+    print("Error : empty")
+else:
+    print(picture_1.get_image_array().shape)
+    picture_1.show()

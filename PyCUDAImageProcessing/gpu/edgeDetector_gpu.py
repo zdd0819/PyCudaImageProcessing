@@ -31,40 +31,7 @@ class edgeDetector_gpu(EdgeDetector):
         """
         if kernel_code is None:  # use default
             self.kernel_code = """
-            #include <math.h>
-            
-            __device__ float convolution(float *matrix_in, int pos_x, int pos_y,
-            int lh, int lw, float *sobel_x, float *sobel_y)
-            {
-                int ret_x = 0;
-                int ret_y = 0;
-                
-                for (int i = 0; i < 3; i++)
-                {
-                    for (int j = 0; j < 3; j++)
-                    {   
-                        ret_x += matrix_in[pos_y * lw + pos_x] * sobel_x[pos_x * 3 + i];
-                        ret_y += matrix_in[pos_y * lw + pos_x] * sobel_y[pos_y * 3 + j];
-                    }
-                }
-                return sqrtf(powf(ret_x, 2) + powf(ret_y, 2));
-            }
-            
-            __global__ void sobel_edges(float *matrix_in, float *sobel_x, float *sobel_y, float *matrix_out)
-            {
-            
-                // 2D threads
-                int lh = %(HEIGHT)s;
-                int lw = %(WIDTH)s;
-                int pos_y = blockIdx.y * blockIdx.y + threadIdx.y;
-                int pos_x = blockIdx.x * blockIdx.x + threadIdx.x;
-                
-                //
-                if (pos_y < %(HEIGHT)s && pos_x < %(WIDTH)s){
-                    float value = convolution(matrix_in, pos_x, pos_y, lh, lw, sobel_x, sobel_y);   
-                    matrix_out[pos_y * %(WIDTH)s + pos_x] = value;
-                }
-            }
+            // add code here
             """
         else:
             assert isinstance(kernel_code, str)
@@ -76,7 +43,7 @@ class edgeDetector_gpu(EdgeDetector):
             'WIDTH': width,
             'HEIGHT': height
         }
-        print(self.kernel_code)
+        #print(self.kernel_code)
         self.module = SourceModule(template_code)
         return self.module.get_function("sobel_edges")
 
@@ -92,9 +59,7 @@ class edgeDetector_gpu(EdgeDetector):
         # auto memory allocation
         if isinstance(image, np.ndarray):  # its a must
             lw, lh = image.shape
-            array_gpu_In = gpuarray.to_gpu(image.astype(np.float32)).astype(np.float32)
-            array_gpu_sobel_x = gpuarray.to_gpu(self.get_filter_1().astype(np.float32)).astype(np.float32)
-            array_gpu_sobel_y = gpuarray.to_gpu(self.get_filter_2().astype(np.float32)).astype(np.float32)
+            array_gpu_In = gpuarray.to_gpu(image.flatten().astype(np.float32)).astype(np.float32)
             array_gpu_Out = gpuarray.empty((lw, lh), dtype=np.float32).astype(np.float32)
         else:
             print("Error: image array is not instance of numpy.ndarray")
@@ -111,11 +76,17 @@ class edgeDetector_gpu(EdgeDetector):
 
         # execute kernel
         kernel = self.device_kernel(lw, lh, kernel_code=self.sobel_edges_kernel())  # compile
+        # calculate time
+        start = drv.Event()
+        end = drv.Event()
+        start.record()
+        # kernel execution
         kernel(array_gpu_In, array_gpu_Out, block=bdim, grid=gdim)
-
+        end.record()
+        end.synchronize()
+        start.synchronize()
         # collect result : convert back to original format
-        print("pass")
-        return (array_gpu_Out.get().reshape(lw, lh)).astype(np.float32)
+        return (array_gpu_Out.get().reshape(lw, lh)).astype(np.float32), start.time_till(end) + 1e-3
 
     def brightness(self):
         kernel_code = """
@@ -152,7 +123,7 @@ class edgeDetector_gpu(EdgeDetector):
             int res   = 0;
                 
             //
-            if (pos_y < %(HEIGHT)s && pos_x < %(WIDTH)s)
+            if ( (pos_y >= 0 && pos_y < %(HEIGHT)s) && (pos_x >= 0 && pos_x < %(WIDTH)s) )
             {
                 ret_x += -matrix_in[%(WIDTH)s *(pos_y - 1) + (pos_x - 1)] + matrix_in[%(WIDTH)s * (pos_y -1)+(pos_x+1)] 
                          -2*matrix_in[%(WIDTH)s *(pos_y) + (pos_x - 1)] + 2*matrix_in[%(WIDTH)s * (pos_y)+(pos_x+1)]
@@ -160,12 +131,15 @@ class edgeDetector_gpu(EdgeDetector):
                 
                 ret_y += matrix_in[%(WIDTH)s * (pos_y-1) + (pos_x-1)] + 2*matrix_in[%(WIDTH)s *(pos_y-1)+(pos_x+1)] +
                          matrix_in[%(WIDTH)s * (pos_y-1)+(pos_x+1)] - matrix_in[%(WIDTH)s *(pos_y+1)+(pos_x-1)] 
-                         - 2*matrix_in[%(WIDTH)s * (pos_y+1)+(pos_x)] - matrix_in[%(WIDTH)s *(pos_y+1)+(pos_x+1)];
+                         -2*matrix_in[%(WIDTH)s * (pos_y+1)+(pos_x)] - matrix_in[%(WIDTH)s *(pos_y+1)+(pos_x+1)];
                 
-                ret_x = ret_x/6;
-                ret_y = ret_y/6;
+                ret_x = ret_x/5;
+                ret_y = ret_y/5;
                  
                 res = (int)sqrtf(powf((float)ret_x, 2) + powf((float)ret_y, 2));
+                
+                if (res > 255)
+                    res = 255;
                 
                 matrix_out[pos_y * %(WIDTH)s + pos_x] = res;
             }
