@@ -18,10 +18,10 @@ import time
 
 
 # arguments
-IMAGE_TEST = "images\\7.jpg"
+IMAGE_TEST = "images\\1.jpg"
 SAVE = True
 MODE = "CPU"
-DISPLAY = True
+DISPLAY = False
 
 def main(MODE="CPU"):
 
@@ -63,11 +63,9 @@ def main(MODE="CPU"):
                     misc.imsave(name="results\\_edged_GPU_" + IMAGE_TEST.split('\\')[-1],
                                 arr=new_image)
         # display
-        if DISPLAY:
-            print("LOG : Displaying results: ---------- ")
             fig = plt.figure()
             ax1 = fig.add_subplot(121)
-            fig.suptitle("Edge Detection")
+            fig.suptitle("Edge Detection"+ MODE)
             ax1.imshow(pic.get_image_array().astype(np.float32), cmap=plt.cm.gray, vmin=30, vmax=200)
             ax2 = fig.add_subplot(122)
             ax2.imshow(new_image, cmap=plt.cm.gray, vmin=30, vmax=200)
@@ -75,7 +73,9 @@ def main(MODE="CPU"):
                 fig.savefig("results\\fig_edged_CPU_" + (IMAGE_TEST.split('\\')[-1]).split(".")[0] + ".png")
             elif MODE == "GPU" and SAVE:
                 fig.savefig("results\\fig_edged_GPU_" + (IMAGE_TEST.split('\\')[-1]).split(".")[0] + ".png")
-            plt.show()
+            if DISPLAY:
+                print("LOG : Displaying results: ---------- ")
+                plt.show()
 
         print("LOG: ----------------  terminated successfully ---------------------- ")
     except Exception as e:
